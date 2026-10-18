@@ -193,6 +193,17 @@ public class MainActivity extends Activity {
         return b.toString();
     }
 
+    private byte[] readEntryBytes(ZipInputStream zin) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buffer = new byte[8192];
+        int n;
+        while ((n = zin.read(buffer)) != -1) {
+            if (out.size() + n > 200 * 1024 * 1024) throw new Exception("Nested archive too large");
+            out.write(buffer, 0, n);
+        }
+        return out.toByteArray();
+    }
+
     private void scanZip(byte[] data, String label, int depth, ArrayList<String> found) {
         if (depth > 6) return;
         try (ZipInputStream zin = new ZipInputStream(new ByteArrayInputStream(data))) {
@@ -203,7 +214,7 @@ public class MainActivity extends Activity {
                     found.add(label + "!/" + n);
                 } else if (!entry.isDirectory() && (n.toLowerCase(Locale.ROOT).endsWith(".apk") || n.toLowerCase(Locale.ROOT).endsWith(".zip") || n.toLowerCase(Locale.ROOT).endsWith(".apks") || n.toLowerCase(Locale.ROOT).endsWith(".xapk"))) {
                     try {
-                        byte[] nested = readAll(zin);
+                        byte[] nested = readEntryBytes(zin);
                         scanZip(nested, label + "!/" + n, depth + 1, found);
                     } catch (Exception ignored) { }
                 }
