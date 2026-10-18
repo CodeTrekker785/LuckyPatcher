@@ -68,3 +68,11 @@ GitHub Actions runs the Python compile checks and unit tests on pushes and pull 
 ## Limitations
 
 These are read-only inspection utilities, not a full decompiler, Android app builder, or runtime loader monitor. They do not enable/disable a native library or bypass third-party protections or license verification. Some malformed archives or ELF variants may not provide complete information.
+
+## Native Android APK
+
+A basic Android app is now included under `app/`. It has buttons to check APK/APKS/XAPK files for `libpairipcore.so`, inspect a selected native library's ELF header/strings/hash, and compare two library files.
+
+The GitHub Actions workflow `.github/workflows/android-apk.yml` builds a debug APK on pushes to `JaDX` and on manual runs. Open the repository's **Actions → Android APK Build → latest successful run → Artifacts** to download `Native-Library-Inspector-debug-APK`. Version tags beginning with `v` also attach the APK to a GitHub Release.
+
+This is a lightweight inspector APK, not the original LuckyPatcher app. It is not yet a signed production release; the debug APK is for testing. The app is read-only and does not disable third-party protections or license verification.
