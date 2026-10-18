@@ -1,11 +1,12 @@
 # DEX Inspector and Native Library Check (read-only)
 
-This repository currently has no Android Gradle project at the `JaDX` branch root, so these checks are standalone Python utilities. They inspect APK/archive contents and do not patch or modify inputs.
+The `JaDX` branch currently uses standalone Python utilities; it does not contain an Android Gradle project to build into a native APK. The optional local web dashboard provides Android-friendly buttons in your browser.
 
 ## Requirements
 
 - Python 3.10 or newer
-- No third-party Python packages required
+- No third-party Python packages required for the standard checks
+- Optional: `readelf` from binutils to show exported/global ELF symbols
 
 ## DEX search
 
@@ -13,45 +14,57 @@ Search every class, method, field, and DEX string in an APK:
 
 ```sh
 python tools/dex_inspector.py app.apk
-```
-
-Search for a term across all indexed entries:
-
-```sh
 python tools/dex_inspector.py app.apk --query example --query com.example
-```
-
-Search only class names or strings:
-
-```sh
 python tools/dex_inspector.py app.apk --kind class --query MainActivity
 python tools/dex_inspector.py app.apk --kind string --query endpoint
 ```
 
-The scanner examines every DEX entry it finds, including DEX files nested in APK/APKS/XAPK/ZIP containers. Output includes the container path, match type, and entry.
-
 ## Check for libpairipcore.so
-
-Check an APK or split-APK bundle for an entry named `libpairipcore.so`:
 
 ```sh
 python tools/libpairipcore_check.py app.apk
 python tools/libpairipcore_check.py app.apks
 ```
 
-The result lists matching archive paths, including ABI folders such as `lib/arm64-v8a/`. Exit code is 0 when found, 1 when not found, and 2 for input/read errors. A positive result confirms the file is packaged in the inspected archive; it does not prove it is loaded or active at runtime. A negative result cannot rule out libraries downloaded at runtime or libraries that have been renamed or packed.
+The check lists matching archive paths, including ABI folders and nested split APKs. Presence does not prove runtime loading; absence cannot rule out runtime downloads or renamed/packed libraries.
 
-Use only on files you are authorized to inspect.
+## Native library modifier toolkit (read-only)
 
-## Checks
+The modifier toolkit includes three functions: ELF/header and printable-string inspection, byte-for-byte comparison of two library files, and archive status checks. It never writes back to input files, changes loaded libraries, or patches application protections/license checks.
+
+### Termux commands
 
 ```sh
-python -m py_compile tools/dex_inspector.py tools/libpairipcore_check.py
+python tools/libpairipcore_modifier.py inspect /path/to/libpairipcore.so
+python tools/libpairipcore_modifier.py compare /path/to/old.so /path/to/new.so
+python tools/libpairipcore_modifier.py status /path/to/app.apk
+# Split bundles are supported too:
+python tools/libpairipcore_modifier.py status /path/to/app.apks
+```
+
+Inspect prints SHA-256, size, ELF class/architecture when identifiable, and up to 80 distinct printable strings. If `readelf` is installed and can parse the file, it also attempts to show global/weak dynamic symbol rows. Stripped libraries may expose few or no symbols.
+
+### Android-friendly browser dashboard
+
+Run this in Termux:
+
+```sh
+python tools/libpairipcore_modifier.py serve
+```
+
+Then open `http://127.0.0.1:8765` in Chrome on the same phone. Use the buttons to check an APK/APKS/XAPK/ZIP, inspect a `.so`, or compare two `.so` files. The dashboard accepts files selected by you and processes them locally through the Termux server. Stop the server with Ctrl+C.
+
+The dashboard listens on localhost by default. Do not bind it to a public interface; uploads are not authenticated.
+
+## Tests
+
+```sh
+python -m py_compile tools/dex_inspector.py tools/libpairipcore_check.py tools/libpairipcore_modifier.py
 python -m unittest discover -s tools/tests -v
 ```
 
-GitHub Actions runs the DEX inspector checks on pushes and pull requests to `JaDX`.
+GitHub Actions runs the Python compile checks and unit tests on pushes and pull requests to `JaDX`.
 
 ## Limitations
 
-These are read-only inspection tools, not a full decompiler or Android APK builder. They do not recover all method bodies, disable native libraries, or patch bytecode. Some unusual or malformed DEX/archive files may be skipped with a warning.
+These are read-only inspection utilities, not a full decompiler, Android app builder, or runtime loader monitor. They do not enable/disable a native library or bypass third-party protections or license verification. Some malformed archives or ELF variants may not provide complete information.
