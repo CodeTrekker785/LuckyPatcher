@@ -1,0 +1,24 @@
+name: DEX Inspector Checks
+
+on:
+  push:
+    branches: [JaDX]
+  pull_request:
+    branches: [JaDX]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile inspector
+        run: python -m py_compile tools/dex_inspector.py
+      - name: Run unit tests
+        run: python -m unittest discover -s tools/tests -v
